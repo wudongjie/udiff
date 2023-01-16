@@ -1,0 +1,23 @@
+Package: udiff
+Title: A Unidiff Model at the Individual Level 
+Version: 1.0
+Date: 2023-01-01
+Authors@R: 
+    person(given = "Dongjie",
+           family = "Wu",
+           role = c("aut", "cre", "cph"),
+           email = "dwu.jacob@gmail.com",
+           comment = c(ORCID = "0000-0002-4490-8657"))
+Description: A log-multiplicative model layer effect model (unidiff model) fit at the individual level.
+License: GPL (>= 3)
+Encoding: UTF-8
+SystemRequirements: C++11
+NeedsCompilation: yes
+Depends: R (>= 3.0.0)
+Imports: stats
+LinkingTo: Rcpp, RcppArmadillo
+Suggests: 
+    testthat (>= 3.0.0),
+Config/testthat/edition: 3
+RoxygenNote: 7.2.3
+LazyData: true
