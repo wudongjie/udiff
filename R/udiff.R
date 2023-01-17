@@ -40,13 +40,14 @@ udiff <- function (formula, data, subset, weights, na.action,
     z <- if(is.null(w)) udiff.fit(x, y, offset = offset, ...)
     else udiff.wfit(x, y, w, offset = offset, ...)
   }
-  class(z) <- c(if(is.matrix(y)) "udiff")
+  class(z) <- c("udiff")
   z$na.action <- attr(mf, "na.action")
   z$offset <- offset
   z$contrasts <- attr(x, "contrasts")
   z$xlevels <- .getXlevels(mt, mf)
   z$call <- cl
   z$terms <- mt
+  z$model <- mf
   z
 }
 
@@ -75,11 +76,9 @@ udiff.fit <- function (x, y, offset = NULL, tol = 1e-07,
   z <- optim(theta, ll, gr, method = "BFGS", hessian = T)
   # z <- optim(theta, ll)
   coef <- z$par
+  hessian <- z$hessian
+  rank <- nrow(z$hessian)
   df <-  nrow(vY) - length(coef) - 1
-  std <- sqrt(diag(solve(z$hessian)))
-  tval <- coef / std
-  pval <- 2 * pt(-abs(tval), df)
-  coefmat <- t(rbind(coef, std, tval, pval))
   names.x <- unique(x[,1])[2:length(unique(x[,1]))]
   names.z <- unique(x[,2])[2:length(unique(x[,2]))]
   names.y <- unique(y)[2:length(unique(y))]
@@ -103,11 +102,9 @@ udiff.fit <- function (x, y, offset = NULL, tol = 1e-07,
     ntheta <- paste("Phi", j, sep=".")
     names_coef <- c(names_coef, ntheta)
   }
-  browser()
-  rownames(coefmat) <- names_coef
+  names(coef) <- names_coef
   obs <- n
-  AIC <- 2 * df - 2 * z$value
-  BIC <- df * log(obs) - 2 * z$value
+
   # pivot <- z$pivot
   ## careful here: the rank might be 0
   # r1 <- seq_len(z$rank)
@@ -117,6 +114,58 @@ udiff.fit <- function (x, y, offset = NULL, tol = 1e-07,
  
   # r1 <- y - z$residuals ; if(!is.null(offset)) r1 <- r1 + offset
   ## avoid unnecessary copy
-  list(coefficients=coefmat, obs=obs, AIC=AIC, BIC=BIC)
+  list(coefficients=coef, obs=obs, df=df, rank=rank, hessian=hessian, ll=z$value)
 }
+
+summary.udiff <- function(object, ...) {
+  std <- sqrt(diag(solve(object$hessian)))
+  tval <- object$coefficients / std
+  pval <- 2 * pt(-abs(tval), object$df)
+  coefmat <- t(rbind(object$coefficients, std, tval, pval))
+  rownames(coefmat) <- names(object$coefficients)
+  colnames(coefmat) <- c(
+    "Estimate", "Std. Error",
+    "t value", "Pr(>|t|)"
+  )
+  ans <- list(
+    call = object$call,
+    coefficients = list()
+  )
+  ans$ll <- object$ll
+  ans$df <- object$df
+  ans$coefficients <- coefmat
+  #rownames(ans$coefficients) <- names_coef
+  ans$obs <- object$obs
+  ans$AIC <- 2 * ans$df - 2 * ans$ll
+  ans$BIC <- ans$df * log(ans$obs) - 2 * ans$ll
+  class(ans) <- c("summary.udiff")
+  ans
+}
+
+
+print.summary.udiff <-
+  function(x, digits = max(3L, getOption("digits") - 3L),
+           signif.stars = getOption("show.signif.stars"), ...) {
+    cat("\nCall:\n",
+        paste(deparse(x$call), sep = "\n", collapse = "\n"), "\n\n",
+        sep = ""
+    )
+    # Coefficients:
+    cat("Coefficients: \n")
+    coefs <- x$coefficients
+    printCoefmat(coefs,
+                 digits = digits, signif.stars = signif.stars,
+                 na.print = "NA", ...
+    )
+    cat("\n")
+    
+    # ll, aic, bic
+    cat(paste0(
+      "logLik: ", format(x$ll, digits = digits), ", ",
+      "AIC: ", format(x$AIC, digits = digits), ", ",
+      "BIC: ", format(x$BIC, digits = digits), ". \n"
+    ))
+    
+    invisible(x)
+  }
 
