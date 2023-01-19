@@ -1,3 +1,7 @@
+#' importFrom("stats", ".getXlevels", "is.empty.model", "model.matrix",
+#' "model.offset", "model.response", "model.weights", "optim",
+#' "printCoefmat", "pt", "runif")
+#' @export
 udiff <- function (formula, data, subset, weights, na.action,
                 contrasts = NULL, offset, ...)
 {
@@ -117,6 +121,7 @@ udiff.fit <- function (x, y, offset = NULL, tol = 1e-07,
   list(coefficients=coef, obs=obs, df=df, rank=rank, hessian=hessian, ll=z$value)
 }
 
+#' @export
 summary.udiff <- function(object, ...) {
   std <- sqrt(diag(solve(object$hessian)))
   tval <- object$coefficients / std
@@ -142,7 +147,7 @@ summary.udiff <- function(object, ...) {
   ans
 }
 
-
+#' @export
 print.summary.udiff <-
   function(x, digits = max(3L, getOption("digits") - 3L),
            signif.stars = getOption("show.signif.stars"), ...) {
