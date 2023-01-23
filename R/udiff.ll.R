@@ -24,3 +24,5 @@ udiff.ll <- function(theta, Y, X, Z) {
   #print(sum(ll))
   -sum(ll)
 }
+
+

@@ -121,6 +121,81 @@ udiff.fit <- function (x, y, offset = NULL, tol = 1e-07,
   list(coefficients=coef, obs=obs, df=df, rank=rank, hessian=hessian, ll=z$value)
 }
 
+
+udiff.wfit <- function (x, y, w, offset = NULL, tol = 1e-07,
+                       ...)
+{
+  if (is.null(n <- nrow(x))) stop("'x' must be a matrix")
+  if(n == 0L) stop("0 (non-NA) cases")
+  #  if (!is.factor(y)) { stop("The dependent variable should be a factor.")}
+  if (ncol(x) != 2) { stop("The independent variables should be two factors.")}
+  #  if (!is.factor(x[,1])) {stop("The independent variables should be two factors.")}
+  #  if (!is.factor(x[,2])) {stop("The independent variables should be two factors.")}
+  if (length(unique(y)) == 1) { stop("The dependent variables have only one level.")}
+  if (length(unique(x[,1])) == 1) { stop("The independent variables have only one level.")}
+  if (length(unique(x[,2])) == 1) { stop("The independent variables have only one level.")}
+  if (any(w < 0 | is.na(w)))
+    stop("missing or negative weights not allowed")
+  zero.weights <- any(w == 0)
+  if (zero.weights) {
+    save.r <- y
+    save.f <- y
+    save.w <- w
+    ok <- w != 0
+    nok <- !ok
+    w <- w[ok]
+    x0 <- x[!ok, , drop = FALSE]
+    x <- x[ok,  , drop = FALSE]
+    n <- nrow(x)
+    y0 <- if (ny > 1L) y[!ok, , drop = FALSE] else y[!ok]
+    y  <- if (ny > 1L) y[ ok, , drop = FALSE] else y[ok]
+  }
+  vY = vdummy(y)[,2:length(unique(y))]
+  vX = vdummy(x[,1])[,2:length(unique(x[,1]))]
+  vZ = vdummy(x[,2])[,2:length(unique(x[,2]))]
+  nelem = ncol(vY)*(ncol(vZ) + 1) + ncol(vY)*ncol(vX) + ncol(vZ)
+  theta = runif(rep(1, nelem),-1, 1)
+  chkDots(...)
+  ## Generate the start value for theta
+  wts <- sqrt(w)
+  ll <- partial(udiff.ll,
+                Y = vY*wts, X = vX*wts, Z = vZ*wts)
+  gr <- gen_gr(ll)
+  z <- optim(theta, ll, gr, method = "BFGS", hessian = T)
+  # z <- optim(theta, ll)
+  coef <- z$par
+  hessian <- z$hessian
+  rank <- nrow(z$hessian)
+  df <-  nrow(vY) - length(coef) - 1
+  names.x <- unique(x[,1])[2:length(unique(x[,1]))]
+  names.z <- unique(x[,2])[2:length(unique(x[,2]))]
+  names.y <- unique(y)[2:length(unique(y))]
+  names_coef <- c() 
+  for (i in names.y) {
+    names_coef <- c(names_coef, paste("theta", i, "Cons", sep="."))
+    for (j in names.z) {
+      ntheta <- paste("theta", i, j, sep=".")
+      names_coef <- c(names_coef, ntheta)
+    }
+  }
+  
+  for (i in names.y) {
+    for (j in names.x) {
+      ntheta <- paste("Psi", i, j, sep=".")
+      names_coef <- c(names_coef, ntheta)
+    }
+  }
+  
+  for (j in names.z) {
+    ntheta <- paste("Phi", j, sep=".")
+    names_coef <- c(names_coef, ntheta)
+  }
+  names(coef) <- names_coef
+  obs <- n
+  list(coefficients=coef, obs=obs, weights=w, df=df, rank=rank, hessian=hessian, ll=z$value)
+}
+
+
 #' @export
 summary.udiff <- function(object, ...) {
   std <- sqrt(diag(solve(object$hessian)))
