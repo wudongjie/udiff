@@ -2,7 +2,6 @@
 
 S3method(print,summary.udiff)
 S3method(summary,udiff)
-export(fit.den.udiff)
 export(flatten)
 export(udiff)
 export(vdummy)

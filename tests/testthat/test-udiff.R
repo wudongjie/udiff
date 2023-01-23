@@ -9,6 +9,6 @@ test_that("multiplication works", {
   result <- udiff(formula1, usdata_ex, weights=w)
   browser()
   print(summary(result))
-  fmm2 <- em::em(result, latent=2, algo="cem")
-  print(summary(fmm2))
+  #fmm2 <- em::em(result, latent=2, algo="cem")
+  #print(summary(fmm2))
 })
